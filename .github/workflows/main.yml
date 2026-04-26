@@ -42,6 +42,7 @@ jobs:
       - name: Split into encrypted 7z volumes
         run: |
           mv downloaded_file "$ORIGINAL_NAME"
+          rm -f archive.7z*
           7z a -p"${{ github.event.inputs.zip_password }}" -v45m archive.7z "$ORIGINAL_NAME"
 
       - name: Commit و Push مرحله‌ای تکه‌ها (هر بار ۱۰ تکه)
