@@ -1,20 +1,39 @@
+name: دانلود فایل دلخواه شما با نت ملی
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_url:
+        description: 'لینک مستقیم فایل مورد نظر'
+        required: true
+        type: string
+      zip_password:
+        description: 'رمز عبور برای فایل ZIP'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
 jobs:
   download-and-split:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: دریافت کد مخزن
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Install 7z
+      - name: نصب 7z
         run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
-      - name: Download file
+      - name: دانلود فایل از لینک
         run: |
           curl -L --fail --retry 3 -o downloaded_file "${{ github.event.inputs.file_url }}"
           ls -lh downloaded_file
 
-      - name: Get original filename (optional)
+      - name: استخراج نام اصلی فایل (اختیاری)
         run: |
           ORIGINAL_NAME=$(basename "${{ github.event.inputs.file_url }}" | cut -d '?' -f1)
           [ -z "$ORIGINAL_NAME" ] && ORIGINAL_NAME="downloaded_file"
@@ -22,10 +41,10 @@ jobs:
 
       - name: Split into encrypted 7z volumes
         run: |
-          mv downloaded_file "$ORIGINAL_NAME"   # rename to original
+          mv downloaded_file "$ORIGINAL_NAME"
           7z a -p"${{ github.event.inputs.zip_password }}" -v45m archive.7z "$ORIGINAL_NAME"
 
-      - name: Commit & push chunks in batches
+      - name: Commit و Push مرحله‌ای تکه‌ها (هر بار ۱۰ تکه)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -40,11 +59,13 @@ jobs:
             [ $end -ge $total ] && end=$((total - 1))
             
             echo "Pushing chunks $start to $end ..."
+            
             for i in $(seq $start $end); do
               git add "${chunks[$i]}"
             done
             
             git commit -m "Add chunks $((start+1))-$((end+1)) of $total"
+            
             for attempt in {1..5}; do
               if git push; then
                 echo "Push successful"
