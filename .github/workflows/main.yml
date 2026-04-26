@@ -1,53 +1,38 @@
-name: دانلود فایل دلخواه شما با نت ملی
-
-on:
-  workflow_dispatch:
-    inputs:
-      file_url:
-        description: 'لینک مستقیم فایل مورد نظر'
-        required: true
-        type: string
-      zip_password:
-        description: 'رمز عبور برای فایل ZIP'
-        required: true
-        type: string
-
-permissions:
-  contents: write
-
 jobs:
   download-and-split:
     runs-on: ubuntu-latest
-
     steps:
-      - name: دریافت کد مخزن
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: نصب 7z
+      - name: Install 7z
         run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
-      - name: دانلود فایل از لینک
+      - name: Download file
         run: |
           curl -L --fail --retry 3 -o downloaded_file "${{ github.event.inputs.file_url }}"
           ls -lh downloaded_file
 
-      - name: استخراج نام اصلی فایل (اختیاری)
+      - name: Get original filename (optional)
         run: |
           ORIGINAL_NAME=$(basename "${{ github.event.inputs.file_url }}" | cut -d '?' -f1)
           [ -z "$ORIGINAL_NAME" ] && ORIGINAL_NAME="downloaded_file"
           echo "ORIGINAL_NAME=$ORIGINAL_NAME" >> $GITHUB_ENV
 
-      - name: Commit و Push مرحله‌ای تکه‌ها (هر بار ۱۰ تکه)
+      - name: Split into encrypted 7z volumes
+        run: |
+          mv downloaded_file "$ORIGINAL_NAME"   # rename to original
+          7z a -p"${{ github.event.inputs.zip_password }}" -v45m archive.7z "$ORIGINAL_NAME"
+
+      - name: Commit & push chunks in batches
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # لیست تمام تکه‌ها
           chunks=(archive.7z.*)
           total=${#chunks[@]}
-          batch_size=10  # هر بار ۱۰ تکه
+          batch_size=10
           start=0
           
           while [ $start -lt $total ]; do
@@ -55,16 +40,11 @@ jobs:
             [ $end -ge $total ] && end=$((total - 1))
             
             echo "Pushing chunks $start to $end ..."
-            
-            # افزودن تکه‌های این بسته
             for i in $(seq $start $end); do
               git add "${chunks[$i]}"
             done
             
-            # commit (با پیام حاوی محدوده)
             git commit -m "Add chunks $((start+1))-$((end+1)) of $total"
-            
-            # push با حداکثر تلاش ۵ بار
             for attempt in {1..5}; do
               if git push; then
                 echo "Push successful"
@@ -76,6 +56,5 @@ jobs:
             done
             
             start=$((end + 1))
-            # کمی صبر بین بسته‌ها
             sleep 5
           done
