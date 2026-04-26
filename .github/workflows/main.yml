@@ -39,13 +39,6 @@ jobs:
           [ -z "$ORIGINAL_NAME" ] && ORIGINAL_NAME="downloaded_file"
           echo "ORIGINAL_NAME=$ORIGINAL_NAME" >> $GITHUB_ENV
 
-      - name: ساخت آرشیو رمزدار چندتکه (هر تکه ۹۵ مگابایت)
-        run: |
-          7z a -p"${{ github.event.inputs.zip_password }}" -mhe=on -mx=3 -v95m "archive.7z" downloaded_file
-
-      - name: حذف فایل اصلی
-        run: rm -f downloaded_file
-
       - name: Commit و Push مرحله‌ای تکه‌ها (هر بار ۱۰ تکه)
         run: |
           git config user.name "github-actions[bot]"
