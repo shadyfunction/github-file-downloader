@@ -46,6 +46,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          # ← این خط تمام تکه‌های قبلی را از مخزن پاک می‌کند
+          git rm --cached archive.7z.* 2>/dev/null || true
+          
           chunks=(archive.7z.*)
           total=${#chunks[@]}
           batch_size=10
