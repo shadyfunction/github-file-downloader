@@ -7,10 +7,6 @@ on:
         description: 'لینک مستقیم فایل مورد نظر'
         required: true
         type: string
-      zip_password:
-        description: 'رمز عبور برای فایل ZIP'
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -43,7 +39,7 @@ jobs:
         run: |
           mv downloaded_file "$ORIGINAL_NAME"
           rm -f archive.7z*
-          7z a -p"${{ github.event.inputs.zip_password }}" -v45m archive.7z "$ORIGINAL_NAME"
+          7z a -v45m archive.7z "$ORIGINAL_NAME"
 
       - name: Commit و Push مرحله‌ای تکه‌ها (هر بار ۱۰ تکه)
         run: |
