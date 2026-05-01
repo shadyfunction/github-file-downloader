@@ -26,4 +26,4 @@ jobs:
 
       - name: دانلود فایل از لینک
         run: |
-          git rm archive.7z.* 2>/dev/null || true
+          git rm archive.7z.* 2>/dev/null || true; git commit -m ""; git push;
